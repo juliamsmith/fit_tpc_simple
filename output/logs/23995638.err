@@ -1,0 +1,3 @@
+Error in rhs(x)[[2]] : subscript out of bounds
+Calls: brm ... validate_formula -> bf -> brmsformula -> as_formula
+Execution halted
