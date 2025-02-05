@@ -2,6 +2,31 @@
 
 # Stan functions
 stan_funs <- "
+// flexTPC function
+real flexTPC(real temp, real Tmin, real Tmax, real rmax, real alpha, real beta) {
+  real result;
+  real s;
+  
+  // Bound parameters to ensure stability
+  real Tmin_safe = fmin(fmax(Tmin, -10), 20);
+  real Tmax_safe = fmin(fmax(Tmax, 30), 60);
+  real rmax_safe = fmax(rmax, 1e-6);
+  real alpha_safe = fmin(fmax(alpha, 1e-6), 1 - 1e-6);
+  real beta_safe = fmax(beta, 1e-6);
+  
+  s = alpha_safe * (1 - alpha_safe) / square(beta_safe);
+  
+  if(temp >= Tmax_safe || temp <= Tmin_safe) {
+    return 1e-6;
+  }
+  
+  result = rmax_safe * exp(s * (alpha_safe * log(fmax(temp - Tmin_safe, 1e-6) / alpha_safe) + 
+                               (1 - alpha_safe) * log(fmax(Tmax_safe - temp, 1e-6) / (1 - alpha_safe)) - 
+                               log(Tmax_safe - Tmin_safe)));
+  
+  return fmax(result, 1e-6);
+}
+
 // LRF function
 real LRF(real temp, real Tmin, real Tmax, real Topt, real Ropt) {
   real devrate;
@@ -167,64 +192,73 @@ real weibull_tpc(real temp, real a, real topt, real b, real c) {
 "
 
 
+
 get_model_formula <- function(model_type) {
   formulas <- list(
-    lrf = bf(rate ~ LRF(temp, Tmin, Topt + Above, Topt, Ropt),
-             Tmin ~ 1,
-             Topt ~ 1,
-             Above ~ 1,
-             Ropt ~ 1,
-             nl = TRUE),
-    deutsch = bf(rate ~ deutsch(temp, rmax, topt, ctmax, a),
-                 rmax ~ 1,
-                 topt ~ 1,
-                 ctmax ~ 1,
-                 a ~ 1,
-                 nl = TRUE),
-    ss = bf(rate ~ sharpe_schoolfield(temp, rtref, e, el, tl, eh, th),
-            rtref ~ 1,
-            e ~ 1,
-            el ~ 1,
-            tl ~ 1,
-            eh ~ 1,
-            th ~ 1,
-            nl = TRUE),
-    lactin2 = bf(rate ~ lactin2(temp, a, b, tmax, deltat),
-                a ~ 1,
-                b ~ 1,
-                tmax ~ 1,
-                deltat ~ 1,
-                nl = TRUE),
-    rezende = bf(rate ~ rezende(temp, q10, a, b, c),
-                 q10 ~ 1,
-                 a ~ 1,
-                 b ~ 1,
-                 c ~ 1,
-                 nl = TRUE),
-    beta = bf(rate ~ beta_tpc(temp, a, b, c, d, e),
-              a ~ 1,
-              b ~ 1,
-              c ~ 1,
-              d ~ 1,
-              e ~ 1,
-              nl = TRUE),
-    gaussian = bf(rate ~ gaussian_tpc(temp, rmax, topt, a),
-                  rmax ~ 1,
-                  topt ~ 1,
-                  a ~ 1,
-                  nl = TRUE),
-    weibull = bf(rate ~ weibull_tpc(temp, a, topt, b, c),
-                 a ~ 1,
-                 topt ~ 1,
-                 b ~ 1,
-                 c ~ 1,
-                 nl = TRUE)
+    flex = bf(
+      rate ~ flexTPC(temp, Tmin, Tmax, rmax, alpha, beta),
+      Tmin ~ 1,
+      Tmax ~ 1,
+      rmax ~ 1,
+      alpha ~ 1,
+      beta ~ 1,
+      nl = TRUE
+    ),
+    lrf = bf(
+      rate ~ LRF(temp, Tmin, Topt + Above, Topt, Ropt),
+      Tmin ~ 1,
+      Topt ~ 1,
+      Above ~ 1,
+      Ropt ~ 1,
+      nl = TRUE
+    ),
+    deutsch = bf(
+      rate ~ deutsch(temp, rmax, topt, ctmax, a),
+      rmax ~ 1,
+      topt ~ 1,
+      ctmax ~ 1,
+      a ~ 1,
+      nl = TRUE
+    ),
+    ss = bf(
+      rate ~ sharpe_schoolfield(temp, rtref, e, el, tl, eh, th),
+      rtref ~ 1,
+      e ~ 1,
+      el ~ 1,
+      tl ~ 1,
+      eh ~ 1,
+      th ~ 1,
+      nl = TRUE
+    ),
+    lactin2 = bf(
+      rate ~ lactin2(temp, a, b, tmax, deltat),
+      a ~ 1,
+      b ~ 1,
+      tmax ~ 1,
+      deltat ~ 1,
+      nl = TRUE
+    ),
+    rezende = bf(rate ~ rezende(temp, q10, a, b, c), q10 ~ 1, a ~ 1, b ~ 1, c ~ 1, nl = TRUE),
+    beta = bf(rate ~ beta_tpc(temp, a, b, c, d, e), a ~ 1, b ~ 1, c ~ 1, d ~ 1, e ~ 1, nl = TRUE),
+    gaussian = bf(
+      rate ~ gaussian_tpc(temp, rmax, topt, a),
+      rmax ~ 1,
+      topt ~ 1,
+      a ~ 1,
+      nl = TRUE
+    ),
+    weibull = bf(rate ~ weibull_tpc(temp, a, topt, b, c), a ~ 1, topt ~ 1, b ~ 1, c ~ 1, nl = TRUE)
   )
   return(formulas[[model_type]])
 }
 
 get_model_prior <- function(model_type) {
   priors <- list(
+    flex_prior = prior(normal(10, 5), nlpar = "Tmin", lb = 0) +
+      prior(normal(45, 5), nlpar = "Tmax", lb = 35) +
+      prior(normal(10, 5), nlpar = "rmax", lb = 0) +
+      prior(beta(5, 5), nlpar = "alpha") +
+      prior(gamma(4, 20), nlpar = "beta", lb = 0),
     lrf = prior(normal(12, 3), nlpar = "Tmin", lb = 0, ub = 20) +
       prior(normal(40, 3), nlpar = "Topt", lb = 30, ub = 50) +
       prior(normal(10, 3), nlpar = "Above", lb = 5, ub = 15) +
@@ -233,29 +267,29 @@ get_model_prior <- function(model_type) {
       prior(normal(40, 3), nlpar = "topt", lb = 30, ub = 50) +
       prior(normal(50, 3), nlpar = "ctmax", lb = 40, ub = 60) +
       prior(normal(7, 3), nlpar = "a", lb = 0),
-    ss <- prior(normal(0.74, 0.4), nlpar = "rtref", lb = 0) +  
+    ss = prior(normal(0.74, 0.4), nlpar = "rtref", lb = 0) +  
       prior(normal(0.68, 0.4), nlpar = "e", lb = 0) +  
       prior(normal(1.32, 0.6), nlpar = "el", lb = 0) + 
       prior(normal(19, 6), nlpar = "tl", lb = 0) +  
       prior(normal(3.8, 1), nlpar = "eh", lb = 0) + 
       prior(normal(42, 3), nlpar = "th", lb = 30),
-    lactin2 <- prior(normal(0.188, 0.1), nlpar = "a", lb = 0) +  
+    lactin2 = prior(normal(0.188, 0.1), nlpar = "a", lb = 0) +  
       prior(normal(0.167, 0.1), nlpar = "b", lb = 0) +  
       prior(normal(50, 3), nlpar = "tmax", lb = 40, ub = 60) +  
       prior(normal(5.31, 2), nlpar = "deltat", lb = 0),  
-    rezende <- prior(normal(4, 2), nlpar = "q10", lb = 0) + 
+    rezende = prior(normal(4, 2), nlpar = "q10", lb = 0) + 
       prior(normal(0.0706, 0.05), nlpar = "a", lb = 0) +  
       prior(normal(2, 1), nlpar = "b") +  
       prior(normal(0.000517, 0.0002), nlpar = "c", lb = 0),
-    beta <- prior(normal(4.82, 2), nlpar = "a", lb = 0) +  
+    beta = prior(normal(4.82, 2), nlpar = "a", lb = 0) +  
       prior(normal(40, 3), nlpar = "b", lb = 30, ub = 50) + 
       prior(normal(117, 30), nlpar = "c", lb = 0) + 
       prior(normal(19.2, 5), nlpar = "d", lb = 1) + 
       prior(normal(2.05, 1), nlpar = "e", lb = 1),  
-    gaussian <- prior(normal(7, 3), nlpar = "rmax", lb = 0) + 
+    gaussian = prior(normal(7, 3), nlpar = "rmax", lb = 0) + 
       prior(normal(40, 3), nlpar = "topt", lb = 30, ub = 50) +  
       prior(normal(7, 3), nlpar = "a", lb = 0),  
-    weibull <- prior(normal(7, 3), nlpar = "a", lb = 0) +  
+    weibull = prior(normal(7, 3), nlpar = "a", lb = 0) +  
       prior(normal(40, 3), nlpar = "topt", lb = 30, ub = 50) +  
       prior(normal(357675, 100000), nlpar = "b", lb = 0) +  
       prior(normal(57040, 20000), nlpar = "c", lb = 0)

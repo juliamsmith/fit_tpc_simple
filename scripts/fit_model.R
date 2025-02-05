@@ -25,7 +25,7 @@ fit <- brm(
   formula = formula,
   data = data,
   prior = prior,
-  family = Gamma(link = "log"),  # Added explicit family specification
+  family = Gamma(link = "identity"),  # Added explicit family specification
   stanvars = stanvar(scode = stan_funs, block = "functions"),
   control = settings$control,
   iter = settings$iter,
