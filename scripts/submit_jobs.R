@@ -14,7 +14,7 @@ if(!run_type %in% c("test", "run")) {
 
 submit_jobs <- function(job_type, model, species, run_type) {
   # Validate model type
-  valid_models <- c("lrf", "deutsch", "ss", "lactin2", "rezende", "beta", "gaussian", "weibull")
+  valid_models <- c("lrf", "deutsch", "ss", "lactin2", "rezende", "beta", "gaussian", "weibull", "flex")
   if(!model %in% valid_models) {
     stop(sprintf("model must be one of: %s", paste(valid_models, collapse=", ")))
   }

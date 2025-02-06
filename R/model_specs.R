@@ -119,7 +119,6 @@ real rezende(real temp, real q10, real a, real b, real c) {
   }
   return est;
 }
-
 // Beta TPC function
 real beta_tpc(real temp, real a, real b, real c, real d, real e) {
   real part1;
@@ -129,24 +128,54 @@ real beta_tpc(real temp, real a, real b, real c, real d, real e) {
   real result;
   real norm;
   
+  // Return small positive value if parameters invalid
   if (a <= 0 || c <= 0 || d <= 1 || e <= 1) {
-    return 1e-10;
+    return 1e-6;
   }
   
-  part1 = a * pow((temp - b + ((c * (d - 1))/(d + e - 2)))/c, d - 1);
-  part2 = pow(1 - ((temp - b + ((c * (d - 1))/(d + e - 2)))/c), e - 1);
+  part1 = a * pow(fmax(0.0, (temp - b + ((c * (d - 1))/(d + e - 2)))/c), d - 1);
+  part2 = pow(fmax(0.0, 1 - ((temp - b + ((c * (d - 1))/(d + e - 2)))/c)), e - 1);
   part3 = pow((d - 1)/(d + e - 2), d - 1);
   part4 = pow((e - 1)/(d + e - 2), e - 1);
   
   result = part1 * part2;
   norm = part3 * part4;
   
-  if (result <= 0 || norm <= 0) {
-    return 1e-10;
+  // Return small positive value if result invalid
+  if (result <= 0 || norm <= 0 || is_nan(result) || is_nan(norm)) {
+    return 1e-6;
   }
   
-  return result/norm;
+  return fmax(1e-6, result/norm);
 }
+
+// Weibull TPC function
+real weibull_tpc(real temp, real a, real topt, real b, real c) {
+  real term1;
+  real term2;
+  real term3;
+  real inner;
+  
+  // Return small positive value if parameters invalid
+  if (a <= 0 || b <= 0 || c <= 0) {
+    return 1e-6;
+  }
+  
+  term1 = a * pow(fmax(0.0, ((c - 1)/c)), ((1 - c)/c));
+  inner = ((temp - topt)/b) + pow(fmax(0.0, ((c - 1)/c)), (1.0/c));
+  term2 = pow(fabs(inner), c - 1);  // Use fabs instead of abs
+  term3 = exp(-pow(fabs(inner), c) + ((c - 1)/c));
+  
+  real result = term1 * term2 * term3;
+  
+  // Return small positive value if result invalid
+  if (result <= 0 || is_nan(result)) {
+    return 1e-6;
+  }
+  
+  return fmax(1e-6, result);
+}
+
 
 // Gaussian TPC function
 real gaussian_tpc(real temp, real rmax, real topt, real a) {
@@ -165,30 +194,6 @@ real gaussian_tpc(real temp, real rmax, real topt, real a) {
   return est;
 }
 
-// Weibull TPC function
-real weibull_tpc(real temp, real a, real topt, real b, real c) {
-  real term1;
-  real term2;
-  real term3;
-  real inner;
-  
-  if (a <= 0 || b <= 0 || c <= 0) {
-    return 1e-10;
-  }
-  
-  term1 = a * pow(((c - 1)/c), ((1 - c)/c));
-  inner = ((temp - topt)/b) + pow(((c - 1)/c), (1.0/c));
-  term2 = pow(inner, (c - 1));
-  term3 = exp(-pow(inner, c) + ((c - 1)/c));
-  
-  real result = term1 * term2 * term3;
-  
-  if (result <= 0) {
-    return 1e-10;
-  }
-  
-  return result;
-}
 "
 
 
