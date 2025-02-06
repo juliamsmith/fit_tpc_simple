@@ -50,7 +50,7 @@ pred_plots <- plot_model_predictions(model_list, ad)
 
 
 #just deutsch and lrf
-pred_plots <- plot_model_predictions(model_list[c(2,5,10,13)], ad)
+#pred_plots <- plot_model_predictions(model_list[c(2,5,10,13)], ad)
 print(pred_plots[[1]])  # MB
 print(pred_plots[[2]])  # MS
 

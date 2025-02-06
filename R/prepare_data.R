@@ -6,13 +6,18 @@ prepare_data <- function(species) {
   
   # Filter for species and add small constant for gamma distribution
   model_data <- ad %>%
-    filter(spp == species) 
-  # Add small constant to handle zeros
-  min_nonzero <- min(model_data$rate[model_data$rate > 0], na.rm = TRUE)
-  epsilon <- min_nonzero/100
-  model_data$rate <- model_data$rate + epsilon
-  # Store the original rate too in case we need it
-  model_data$rate_orig <- model_data$rate - epsilon
+    filter(spp == species) %>%
+    mutate(
+      # Add small constant to handle zeros
+      min_nonzero <- min(rate[rate > 0], na.rm = TRUE),
+      rate = rate + min_nonzero/100,
+      # Add standardized temperature
+      temp_std = (temp - mean(temp)) / sd(temp)
+    )
+  
+  # Store temperature transformation values for later back-transformation
+  attr(model_data, "temp_mean") <- mean(ad$temp)
+  attr(model_data, "temp_sd") <- sd(ad$temp)
   
   return(model_data)
 }

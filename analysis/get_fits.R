@@ -1,11 +1,12 @@
 library(stringr)
-
 setwd("~/GitHub/fit_tpc_simple")
 
+# Get file names
 filenames <- list.files("output/fits", pattern="*.rds")
 
+# Create model list by reading the RDS files directly
 model_list <- setNames(
-  lapply(filenames, function(f) get(str_remove(f, ".rds"))),
+  lapply(filenames, function(f) readRDS(file.path("output/fits", f))),
   str_remove(filenames, ".rds")
 )
 
