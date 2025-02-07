@@ -201,7 +201,7 @@ real gaussian_tpc(real temp, real rmax, real topt, real a) {
 get_model_formula <- function(model_type) {
   formulas <- list(
     flex = bf(
-      rate ~ flexTPC(temp_std * attr(data, "temp_sd") + attr(data, "temp_mean"), Tmin, Tmax, rmax, alpha, beta),
+      rate ~ flexTPC(temp_std * temp_sd + temp_mean, Tmin, Tmax, rmax, alpha, beta),
       Tmin ~ 1,
       Tmax ~ 1,
       rmax ~ 1,
@@ -210,7 +210,7 @@ get_model_formula <- function(model_type) {
       nl = TRUE
     ),
     lrf = bf(
-      rate ~ LRF(temp_std * attr(data, "temp_sd") + attr(data, "temp_mean"), Tmin, Topt + Above, Topt, Ropt),
+      rate ~ LRF(temp_std * temp_sd + temp_mean, Tmin, Topt + Above, Topt, Ropt),
       Tmin ~ 1,
       Topt ~ 1,
       Above ~ 1,
@@ -218,7 +218,7 @@ get_model_formula <- function(model_type) {
       nl = TRUE
     ),
     deutsch = bf(
-      rate ~ deutsch(temp_std * attr(data, "temp_sd") + attr(data, "temp_mean"), rmax, topt, ctmax, a),
+      rate ~ deutsch(temp_std * temp_sd + temp_mean, rmax, topt, ctmax, a),
       rmax ~ 1,
       topt ~ 1,
       ctmax ~ 1,
@@ -226,7 +226,7 @@ get_model_formula <- function(model_type) {
       nl = TRUE
     ),
     ss = bf(
-      rate ~ sharpe_schoolfield(temp_std * attr(data, "temp_sd") + attr(data, "temp_mean"), rtref, e, el, tl, eh, th),
+      rate ~ sharpe_schoolfield(temp_std * temp_sd + temp_mean, rtref, e, el, tl, eh, th),
       rtref ~ 1,
       e ~ 1,
       el ~ 1,
@@ -236,23 +236,23 @@ get_model_formula <- function(model_type) {
       nl = TRUE
     ),
     lactin2 = bf(
-      rate ~ lactin2(temp_std * attr(data, "temp_sd") + attr(data, "temp_mean"), a, b, tmax, deltat),
+      rate ~ lactin2(temp_std * temp_sd + temp_mean, a, b, tmax, deltat),
       a ~ 1,
       b ~ 1,
       tmax ~ 1,
       deltat ~ 1,
       nl = TRUE
     ),
-    rezende = bf(rate ~ rezende(temp_std * attr(data, "temp_sd") + attr(data, "temp_mean"), q10, a, b, c), q10 ~ 1, a ~ 1, b ~ 1, c ~ 1, nl = TRUE),
-    beta = bf(rate ~ beta_tpc(temp_std * attr(data, "temp_sd") + attr(data, "temp_mean"), a, b, c, d, e), a ~ 1, b ~ 1, c ~ 1, d ~ 1, e ~ 1, nl = TRUE),
+    rezende = bf(rate ~ rezende(temp_std * temp_sd + temp_mean, q10, a, b, c), q10 ~ 1, a ~ 1, b ~ 1, c ~ 1, nl = TRUE),
+    beta = bf(rate ~ beta_tpc(temp_std * temp_sd + temp_mean, a, b, c, d, e), a ~ 1, b ~ 1, c ~ 1, d ~ 1, e ~ 1, nl = TRUE),
     gaussian = bf(
-      rate ~ gaussian_tpc(temp_std * attr(data, "temp_sd") + attr(data, "temp_mean"), rmax, topt, a),
+      rate ~ gaussian_tpc(temp_std * temp_sd + temp_mean, rmax, topt, a),
       rmax ~ 1,
       topt ~ 1,
       a ~ 1,
       nl = TRUE
     ),
-    weibull = bf(rate ~ weibull_tpc(temp_std * attr(data, "temp_sd") + attr(data, "temp_mean"), a, topt, b, c), a ~ 1, topt ~ 1, b ~ 1, c ~ 1, nl = TRUE)
+    weibull = bf(rate ~ weibull_tpc(temp_std * temp_sd + temp_mean, a, topt, b, c), a ~ 1, topt ~ 1, b ~ 1, c ~ 1, nl = TRUE)
   )
   return(formulas[[model_type]])
 }

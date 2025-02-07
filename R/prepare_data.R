@@ -8,16 +8,14 @@ prepare_data <- function(species) {
   model_data <- ad %>%
     filter(spp == species) %>%
     mutate(
-      # Add small constant to handle zeros
-      min_nonzero <- min(rate[rate > 0], na.rm = TRUE),
-      rate = rate + min_nonzero/100,
-      # Add standardized temperature
-      temp_std = (temp - mean(temp)) / sd(temp)
-    )
-  
-  # Store temperature transformation values for later back-transformation
-  attr(model_data, "temp_mean") <- mean(ad$temp)
-  attr(model_data, "temp_sd") <- sd(ad$temp)
-  
+      .min_nonzero = min(rate[rate > 0], na.rm = TRUE),
+      rate = rate + .min_nonzero/100,
+      temp_mean = mean(temp),
+      temp_sd = sd(temp),
+      temp_std = (temp - temp_mean) / temp_sd
+    ) %>%
+    select(-`.min_nonzero`)
   return(model_data)
 }
+
+
